@@ -22,28 +22,42 @@ class UserData {
   });
 
   factory UserData.fromJson(Map<String, dynamic> json) {
-    // Mengambil data user dari response
-    final user = json['user'] as Map<String, dynamic>;
-    
-    // Mengambil accounts dari response dengan null check
-    final accountsJson = json['accounts'] as List<dynamic>? ?? [];
-    final accountsList = accountsJson
-        .map((account) => Account.fromJson(account))
-        .toList();
+    try {
+      // Mengambil data user dari response
+      final user = json['user'] as Map<String, dynamic>? ?? {};
+      
+      // Mengambil accounts dari response dengan null check
+      final accountsJson = json['accounts'] as List<dynamic>? ?? [];
+      final accountsList = accountsJson
+          .map((account) => Account.fromJson(account))
+          .toList();
 
-    return UserData(
-      id: user['id'] ?? 0,
-      customerName: user['name'] ?? '',
-      username: user['username'] ?? '',
-      email: user['email'] ?? '',
-      phone: user['phone'] ?? '',
-      cifNumber: user['cif_number'] ?? '',
-      accounts: accountsList,
-      totalBalance: accountsList.fold(
-        0,
-        (sum, account) => sum + account.availableBalance,
-      ),
-    );
+      return UserData(
+        id: int.tryParse(user['id']?.toString() ?? '0') ?? 0,
+        customerName: user['name']?.toString() ?? '',
+        username: user['username']?.toString() ?? '',
+        email: user['email']?.toString() ?? '',
+        phone: user['phone']?.toString() ?? '',
+        cifNumber: user['cif_number']?.toString() ?? '',
+        accounts: accountsList,
+        totalBalance: accountsList.fold(
+          0,
+          (sum, account) => sum + account.availableBalance,
+        ),
+      );
+    } catch (e) {
+      // Return empty user data if parsing fails
+      return UserData(
+        id: 0,
+        customerName: '',
+        username: '',
+        email: '',
+        phone: '',
+        cifNumber: '',
+        accounts: [],
+        totalBalance: 0,
+      );
+    }
   }
 }
 

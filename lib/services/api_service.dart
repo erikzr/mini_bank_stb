@@ -9,6 +9,7 @@ import '../models/user_model.dart';
 class ApiService {
   static const String baseUrl = 'https://808c-112-215-241-107.ngrok-free.app/mobile_banking_api/api';
   static const String tokenKey = 'user_token';
+  static const String userDataKey = 'user_data';
   
   final logger = Logger(
     printer: PrettyPrinter(
@@ -40,16 +41,19 @@ class ApiService {
         final responseData = jsonDecode(response.body);
         logger.i('Login response: $responseData');
         
-        // Simpan token
+        // Simpan token dan data user
+        final prefs = await SharedPreferences.getInstance();
         if (responseData['token'] != null) {
-          final prefs = await SharedPreferences.getInstance();
           await prefs.setString(tokenKey, responseData['token']);
         }
+        
+        // Simpan data user
+        await prefs.setString(userDataKey, json.encode(responseData));
         
         return {
           'status': 'success',
           'message': responseData['message'] ?? 'Login berhasil',
-          'data': responseData
+          'data': UserData.fromJson(responseData)
         };
       } else {
         final responseData = jsonDecode(response.body);
@@ -71,30 +75,18 @@ class ApiService {
   // Get User Data
   Future<UserData> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString(tokenKey);
+    final userDataString = prefs.getString(userDataKey);
     
-    if (token == null) {
-      throw Exception('Token tidak ditemukan');
+    if (userDataString == null) {
+      throw Exception('Data pengguna tidak ditemukan');
     }
 
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/user.php'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Accept': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final responseData = jsonDecode(response.body);
-        return UserData.fromJson(responseData);
-      } else {
-        throw Exception('Gagal memuat data pengguna');
-      }
+      final userData = json.decode(userDataString);
+      return UserData.fromJson(userData);
     } catch (e) {
       logger.e('Error getting user data', error: e);
-      throw Exception('Terjadi kesalahan: $e');
+      throw Exception('Terjadi kesalahan saat memuat data pengguna');
     }
   }
 
@@ -102,30 +94,11 @@ class ApiService {
   Future<void> logout() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString(tokenKey);
-
-      if (token != null) {
-        await http.post(
-          Uri.parse('$baseUrl/logout.php'),
-          headers: {
-            'Authorization': 'Bearer $token',
-          },
-        );
-      }
-
       await prefs.remove(tokenKey);
+      await prefs.remove(userDataKey);
     } catch (e) {
       logger.e('Logout error', error: e);
       throw Exception('Gagal logout: $e');
     }
-  }
-
-  // Debug helper
-  void logResponse(http.Response response) {
-    logger.d('Response Log', error: {
-      'Status Code': response.statusCode,
-      'Headers': response.headers,
-      'Body': response.body
-    });
   }
 }
