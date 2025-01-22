@@ -90,6 +90,74 @@ class ApiService {
     }
   }
 
+  // Validate Account
+  Future<UserData> validateAccount(String accountNumber) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(tokenKey);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/validate_account.php'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'account_number': accountNumber,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+      logger.i('Validate account response: $responseData');
+
+      if (response.statusCode == 200) {
+        return UserData.fromJson(responseData);
+      } else {
+        throw Exception(responseData['message'] ?? 'Gagal memvalidasi rekening');
+      }
+    } catch (e) {
+      logger.e('Validate account error', error: e);
+      throw Exception('Terjadi kesalahan saat memvalidasi rekening');
+    }
+  }
+
+  // Transfer
+  Future<void> transfer({
+    required String recipientAccount,
+    required int amount,
+    String? note,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(tokenKey);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/transfer.php'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'recipient_account': recipientAccount,
+          'amount': amount,
+          'note': note,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+      logger.i('Transfer response: $responseData');
+
+      if (response.statusCode != 200) {
+        throw Exception(responseData['message'] ?? 'Transfer gagal');
+      }
+    } catch (e) {
+      logger.e('Transfer error', error: e);
+      throw Exception('Terjadi kesalahan saat melakukan transfer');
+    }
+  }
+
   // Logout
   Future<void> logout() async {
     try {
@@ -99,6 +167,47 @@ class ApiService {
     } catch (e) {
       logger.e('Logout error', error: e);
       throw Exception('Gagal logout: $e');
+    }
+  }
+
+  // Top Up
+  Future<Map<String, dynamic>> topUp({required int amount}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(tokenKey);
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/topup.php'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'amount': amount,
+        }),
+      );
+
+      final responseData = jsonDecode(response.body);
+      logger.i('Top up response: $responseData');
+
+      if (response.statusCode == 200) {
+        return {
+          'status': 'success',
+          'message': responseData['message'] ?? 'Top up berhasil',
+        };
+      } else {
+        return {
+          'status': 'error',
+          'message': responseData['message'] ?? 'Top up gagal',
+        };
+      }
+    } catch (e) {
+      logger.e('Top up error', error: e);
+      return {
+        'status': 'error',
+        'message': 'Terjadi kesalahan saat top up',
+      };
     }
   }
 }

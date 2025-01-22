@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
 import '../models/user_model.dart';
+import 'settings_page.dart';
+import 'topup_page.dart';
+import 'profile_page.dart';
+import 'transfer_page.dart';
+import 'history_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -63,6 +68,11 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Fungsi untuk refresh data setelah top up atau transfer
+  Future<void> _handleRefresh() async {
+    await _loadUserData();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -102,13 +112,27 @@ class _HomePageState extends State<HomePage> {
                         ),
                         Row(
                           children: [
-                            IconButton(
-                              icon: const Icon(Icons.notifications, color: Colors.white),
-                              onPressed: () => Navigator.pushNamed(context, '/notifications'),
-                            ),
+                          IconButton(
+                            icon: const Icon(Icons.settings, color: Colors.white),
+                            onPressed: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const SettingsPage(),
+                                ),
+                              );
+                            },
+                          ),
                             IconButton(
                               icon: const Icon(Icons.settings, color: Colors.white),
-                              onPressed: () => Navigator.pushNamed(context, '/settings'),
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SettingsPage(),
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
@@ -158,17 +182,45 @@ class _HomePageState extends State<HomePage> {
                         _buildQuickAction(
                           icon: Icons.add,
                           label: 'Top Up Saldo',
-                          onTap: () => Navigator.pushNamed(context, '/topup'),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const TopUpPage(),
+
+                              ),
+                            );
+                            if (result == true) {
+                              _handleRefresh();
+                            }
+                          },
                         ),
                         _buildQuickAction(
                           icon: Icons.person,
                           label: 'Profil',
-                          onTap: () => Navigator.pushNamed(context, '/profile'),
+                          onTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ProfilePage(),
+                              ),
+                            );
+                          },
                         ),
                         _buildQuickAction(
                           icon: Icons.send,
                           label: 'Kirim Uang',
-                          onTap: () => Navigator.pushNamed(context, '/transfer'),
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const TransferPage(),
+                              ),
+                            );
+                            if (result == true) {
+                              _handleRefresh();
+                            }
+                          },
                         ),
                       ],
                     ),
@@ -251,13 +303,26 @@ class _HomePageState extends State<HomePage> {
             label: 'Logout',
           ),
         ],
-        onTap: (index) {
+        onTap: (index) async {
           switch (index) {
             case 1:
-              Navigator.pushNamed(context, '/transfer');
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TransferPage(),
+                ),
+              );
+              if (result == true) {
+                _handleRefresh();
+              }
               break;
             case 2:
-              Navigator.pushNamed(context, '/history');
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const HistoryPage(),
+                ),
+              );
               break;
             case 3:
               _handleLogout();
