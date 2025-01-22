@@ -14,6 +14,7 @@ class _TopUpPageState extends State<TopUpPage> {
   final _apiService = ApiService();
   final _formKey = GlobalKey<FormState>();
   final _amountController = TextEditingController();
+  final _accountNumberController = TextEditingController(); // Tambahkan controller untuk account_number
   bool _isLoading = false;
 
   final _currencyFormatter = NumberFormat.currency(
@@ -39,6 +40,7 @@ class _TopUpPageState extends State<TopUpPage> {
     try {
       final result = await _apiService.topUp(
         amount: int.parse(_amountController.text.replaceAll(RegExp(r'[^0-9]'), '')),
+        accountNumber: _accountNumberController.text, // Kirim account_number ke API
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -72,6 +74,21 @@ class _TopUpPageState extends State<TopUpPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
+            TextFormField(
+              controller: _accountNumberController,
+              decoration: const InputDecoration(
+                labelText: 'Nomor Rekening',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.text,
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Nomor rekening tidak boleh kosong';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _amountController,
               decoration: const InputDecoration(
