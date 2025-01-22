@@ -1,8 +1,9 @@
+// login_page.dart
 import 'package:flutter/material.dart';
-import 'home_page.dart'; // Tambahkan import HomePage
+import 'package:myapp/services/api_service.dart';
+import 'package:logger/logger.dart';
 
 class LoginPage extends StatefulWidget {
-  // Gunakan super parameter
   const LoginPage({super.key});
 
   @override
@@ -11,11 +12,54 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
+  final logger = Logger();
   bool _isPasswordVisible = false;
-  bool _rememberMe = false;
+  bool _isLoading = false;
   
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _apiService = ApiService();
+
+  Future<void> _handleLogin() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final response = await _apiService.login(
+          _usernameController.text,
+          _passwordController.text,
+        );
+
+        logger.d('API Response: $response');
+
+        if (!mounted) return;
+
+        if (response['status'] == 'success' || response['message'] == 'Login berhasil') {
+          logger.i('Login berhasil, mencoba navigasi...');
+          // Gunakan pushReplacementNamed sebagai gantinya
+          Navigator.pushReplacementNamed(context, '/home');
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(response['message'] ?? 'Login gagal')),
+          );
+        }
+      } catch (e) {
+        logger.e('Error during login', error: e);
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString())),
+        );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +72,9 @@ class _LoginPageState extends State<LoginPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back Button
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(height: 20),
+                // Hapus back button karena ini adalah halaman awal
+                const SizedBox(height: 40),
                 
-                // Title
                 const Center(
                   child: Text(
                     'Login to your Swift Pay account',
@@ -47,13 +86,11 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 const SizedBox(height: 40),
 
-                // Form
                 Form(
                   key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Username Field
                       const Text('Username'),
                       const SizedBox(height: 8),
                       TextFormField(
@@ -75,14 +112,15 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Password Field
-                      const Text('Password'),
+                      const Text('PIN'),
                       const SizedBox(height: 8),
                       TextFormField(
                         controller: _passwordController,
                         obscureText: !_isPasswordVisible,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
                         decoration: InputDecoration(
-                          hintText: 'Password',
+                          hintText: 'Enter your PIN',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -100,77 +138,44 @@ class _LoginPageState extends State<LoginPage> {
                               });
                             },
                           ),
+                          counterText: "",
                         ),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
+                            return 'Please enter your PIN';
+                          }
+                          if (value.length != 6) {
+                            return 'PIN must be 6 digits';
                           }
                           return null;
                         },
                       ),
-                      const SizedBox(height: 20),
-
-                      // Remember Me and Forgot Password
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
-                            children: [
-                              Checkbox(
-                                value: _rememberMe,
-                                onChanged: (value) {
-                                  setState(() {
-                                    _rememberMe = value ?? false;
-                                  });
-                                },
-                              ),
-                              const Text('Remember Me'),
-                            ],
-                          ),
-                          TextButton(
-                            onPressed: () {
-                              // Navigate to forgot password page
-                            },
-                            child: const Text('Forgot Password?'),
-                          ),
-                        ],
-                      ),
                       const SizedBox(height: 30),
 
-                      // Login Button
                       SizedBox(
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              // Perform login logic here
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const HomePage(),
-                                ),
-                              );
-                            }
-                          },
+                          onPressed: _isLoading ? null : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.blue,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
                           ),
-                          child: const Text(
-                            'Login',
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.white)
+                              : const Text(
+                                  'Login',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         ),
                       ),
                       const SizedBox(height: 20),
 
-                      // Register Link
                       Center(
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -178,7 +183,8 @@ class _LoginPageState extends State<LoginPage> {
                             const Text("Don't have an account? "),
                             TextButton(
                               onPressed: () {
-                                // Navigate to register page
+                                // Navigasi ke halaman register (jika ada)
+                                // Navigator.pushNamed(context, '/register');
                               },
                               child: const Text('Register here'),
                             ),
